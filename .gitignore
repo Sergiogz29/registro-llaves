@@ -1,0 +1,21 @@
+﻿# Ignorar IDE/OS
+**/.cursor/**
+**/.vscode/**
+**/.idea/**
+**/.DS_Store
+**/Thumbs.db
+
+# Ignorar dependencias y entornos
+**/vendor/**
+node_modules/
+
+# Ignorar archivos temporales y logs
+*.log
+*.tmp
+
+# Ignorar configuraciones locales sensibles
+**/.env
+**/config.local.php
+
+# Ignorar directorios del sistema del usuario
+../*
