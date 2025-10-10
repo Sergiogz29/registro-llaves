@@ -98,7 +98,13 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                 <td><?= htmlspecialchars($row['nombre_poblacion']) ?></td>
                 <td class="direccion-cell"><?= htmlspecialchars($row['direccion']) ?></td>
                 <td class="ubicacion-cell"><?= htmlspecialchars($row['nombre_ubicacion']) ?></td>
-                <td class="fecha-recepcion-cell"><?= date('d-m-Y', strtotime($row['fecha_recepcion'])) ?></td>
+                <td class="fecha-recepcion-cell"><?= 
+                    ($row['fecha_recepcion'] !== null && 
+                     $row['fecha_recepcion'] !== '' && 
+                     $row['fecha_recepcion'] !== '0000-00-00' && 
+                     $row['fecha_recepcion'] !== '1970-01-01') ? 
+                    date('d-m-Y', strtotime($row['fecha_recepcion'])) : '-' 
+                ?></td>
                 <td class="alarma-cell">
                     <?php
                         $textoAlarma = '-';
@@ -281,7 +287,13 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                                 <td><?= $row['nombre_poblacion'] ?></td>
                                 <td class="direccion-cell"><?= $row['direccion'] ?></td>
                                 <td class="ubicacion-cell"><?= $row['nombre_ubicacion'] ?></td>
-                                <td class="fecha-recepcion-cell"><?= date('d-m-Y', strtotime($row['fecha_recepcion'])) ?></td>
+                                <td class="fecha-recepcion-cell"><?= 
+                    ($row['fecha_recepcion'] !== null && 
+                     $row['fecha_recepcion'] !== '' && 
+                     $row['fecha_recepcion'] !== '0000-00-00' && 
+                     $row['fecha_recepcion'] !== '1970-01-01') ? 
+                    date('d-m-Y', strtotime($row['fecha_recepcion'])) : '-' 
+                ?></td>
                                 <td class="alarma-cell">
                                     <?php
                                         $textoAlarma = '-';

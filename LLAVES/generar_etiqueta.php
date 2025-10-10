@@ -9,9 +9,16 @@ function generarEtiqueta($codigo_principal, $id_propietario)
 {
     global $conexion;
 
-    // Obtener datos de la llave
-    $sql = "SELECT l.codigo_principal, l.codigo_secundario, l.direccion, l.tiene_alarma, l.codigo_alarma,
-                   p.nombre_propietario, po.nombre_poblacion
+    // Obtener datos de la llave. Se prepara el valor imprimible de alarma con fallback al código secundario
+    $sql = "SELECT 
+                l.codigo_principal,
+                l.codigo_secundario,
+                l.direccion,
+                l.tiene_alarma,
+                l.codigo_alarma,
+                COALESCE(NULLIF(l.codigo_alarma, ''), NULLIF(l.codigo_secundario, '')) AS codigo_alarma_impresion,
+                p.nombre_propietario,
+                po.nombre_poblacion
             FROM llaves l
             INNER JOIN propietario p ON l.id_propietario = p.id_propietario
             LEFT JOIN poblacion po ON l.id_poblacion = po.id_poblacion
@@ -31,49 +38,40 @@ function generarEtiqueta($codigo_principal, $id_propietario)
         die('Llave no encontrada');
     }
 
-    // Crear PDF de 50x20 mm, orientación horizontal para mejor aprovechamiento
+    // Crear PDF de 50x20 mm, orientación horizontal
     $ancho = 50; // mm
-    $alto = 20;  // mm
+    $alto  = 20; // mm
     $pdf = new FPDF('L', 'mm', array($ancho, $alto));
     $pdf->AddPage();
-
-    // Márgenes mínimos
-    $pdf->SetMargins(2, 2, 2);
     $pdf->SetAutoPageBreak(false);
+    // Márgenes contenidos para maximizar área útil
+    $pdf->SetMargins(1, 1, 1);
 
-    // Contenido de la etiqueta:
-    // Línea 1: Código principal (en negrita un poco más grande)
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(0, 5, utf8_decode($llave['codigo_principal']), 0, 1, 'L');
+    // Borde fino
+    $pdf->SetDrawColor(200, 200, 200);
+    $pdf->Rect(0.8, 0.8, $ancho - 1.6, $alto - 1.6);
+
+    // Contenido de la etiqueta (centrado y compacto)
+    // Línea 1: Código principal (en negrita)
+    $pdf->SetFont('Arial', 'B', 8.5);
+    $pdf->Cell(0, 3.6, utf8_decode($llave['codigo_principal']), 0, 1, 'C');
 
     // Línea 2: Dirección (recortada si es muy larga)
-    $pdf->SetFont('Arial', '', 7);
+    $pdf->SetFont('Arial', '', 6.2);
     $direccion = trim((string)$llave['direccion']);
     if (mb_strlen($direccion) > 60) {
         $direccion = mb_substr($direccion, 0, 60) . '…';
     }
-    $pdf->Cell(0, 4, utf8_decode($direccion), 0, 1, 'L');
+    // MultiCell para permitir dos líneas estrechas
+    $pdf->MultiCell(0, 2.8, utf8_decode($direccion), 0, 'C');
 
-    // Línea 3: Alarma (solo si tiene y hay código)
-    $tieneAlarma = isset($llave['tiene_alarma']) && intval($llave['tiene_alarma']) === 1;
-    if ($tieneAlarma) {
-        $codigoAlarma = trim((string)($llave['codigo_alarma'] ?? ''));
-        if ($codigoAlarma !== '') {
-            $pdf->SetFont('Arial', 'B', 7);
-            $pdf->Cell(0, 4, utf8_decode('ALARMA: ' . $codigoAlarma), 0, 1, 'L');
-        }
+    // Línea 3: ALARMA → solo si tiene_alarma = 1 y hay codigo_alarma
+    $tieneAlarma = isset($llave['tiene_alarma']) && (intval($llave['tiene_alarma']) === 1 || $llave['tiene_alarma'] === '1');
+    $codigoAlarma = trim((string)($llave['codigo_alarma'] ?? ''));
+    if ($tieneAlarma && $codigoAlarma !== '' && strtoupper($codigoAlarma) !== 'NULL') {
+        $pdf->SetFont('Arial', 'B', 7.0);
+        $pdf->Cell(0, 3.0, utf8_decode('ALARMA: ' . $codigoAlarma), 0, 1, 'C');
     }
-
-    // Línea 4: Municipio (opcional)
-    $municipio = trim((string)($llave['nombre_poblacion'] ?? ''));
-    if ($municipio !== '') {
-        $pdf->SetFont('Arial', '', 7);
-        $pdf->Cell(0, 4, utf8_decode('Municipio: ' . $municipio), 0, 1, 'L');
-    }
-
-    // Borde fino opcional
-    $pdf->SetDrawColor(200, 200, 200);
-    $pdf->Rect(1, 1, $ancho - 2, $alto - 2);
 
     $nombre_pdf = 'etiqueta_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $codigo_principal) . '.pdf';
     $pdf->Output('I', $nombre_pdf);

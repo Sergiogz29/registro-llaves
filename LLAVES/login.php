@@ -12,39 +12,55 @@ if (isset($_SESSION["s_usuario"])) {
 <head>
     <meta charset="UTF-8">
     <title>Iniciar sesión</title>
-    <link rel="stylesheet" href="css/estilos_login.css">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="stylesheet" href="css/estilos_login.css?v=<?php echo time(); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
 <body>
-    <img src="img/logo.png" alt="Logo" class="logo">
-    <div class="container-login">
-        <div class="wrap-login">
-            <form class="login-form" action="procesar_login.php" method="POST">
-                <span class="login-form-title">LOGIN</span>
-
-                <div class="wrap-input">
-                    <input type="text" name="usuario" required class="input" placeholder="Usuario">
-                    <span class="focus-efecto"></span>
+    <div class="login-layout">
+        <aside class="login-sidebar">
+            <div class="sidebar-content">
+                <div class="logo-section">
+                    <img src="img/logo.png" alt="Logo" class="sidebar-logo">
+                    <div class="logo-text">
+                        <div class="company-name">IDP Gestión de Inmuebles</div>
+                        <div class="company-subtitle">Inventario de llaves</div>
+                    </div>
                 </div>
+                <p class="sidebar-description">Accede con tu usuario para gestionar el inventario.</p>
+            </div>
+        </aside>
 
-                <div class="wrap-input">
-                    <input id="password" type="password" name="contrasena" required class="input" placeholder="Contraseña">
-                    <span class="focus-efecto"></span>
-                    <span id="togglePassword" class="hidden-icon" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none; font-size: 18px; color: #333;">
-                        🔒
-                    </span>
-                </div>
+        <main class="login-main">
+            <div class="login-form-container">
+                <h2 class="login-title">Iniciar sesión</h2>
+                <form class="login-form" action="procesar_login.php" method="POST">
+                    <div class="form-group">
+                        <label class="form-label">Usuario</label>
+                        <input type="text" name="usuario" required class="form-input" placeholder="Usuario">
+                    </div>
 
-                <div class="container-login-form-btn">
-                    <button type="submit" class="login-form-btn">CONECTAR</button>
-                </div>
+                    <div class="form-group">
+                        <label class="form-label">Contraseña</label>
+                        <div class="password-container">
+                            <input id="password" type="password" name="contrasena" required class="form-input" placeholder="Contraseña">
+                            <span id="togglePassword" class="password-toggle">
+                                🔒
+                            </span>
+                        </div>
+                    </div>
 
-                <?php if (isset($_GET["error"])): ?>
-                    <p class="error-msg"><?= htmlspecialchars($_GET["error"]) ?></p>
-                <?php endif; ?>
-            </form>
-        </div>
+                    <?php if (isset($_GET["error"])): ?>
+                        <p class="error-msg"><?= htmlspecialchars($_GET["error"]) ?></p>
+                    <?php endif; ?>
+
+                    <button type="submit" class="login-btn">Entrar</button>
+                </form>
+            </div>
+        </main>
     </div>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
