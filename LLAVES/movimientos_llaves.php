@@ -128,6 +128,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar'])) {
         $nuevo_estado = ($tipo_ubicacion_nueva === 'interna') ? 'entrada' : 'salida';
 
         // Actualizar llave
+        // Asegurar columna baja
+        $conexion->query("ALTER TABLE llaves ADD COLUMN IF NOT EXISTS baja TINYINT(1) NOT NULL DEFAULT 0");
+
         $stmt_update = $conexion->prepare("UPDATE llaves SET 
             direccion = ?, 
             id_ubicacion = ?, 
@@ -457,6 +460,27 @@ $movimientos = $conexion->query($query_movimientos);
                 form.submit();
             }
         }
+
+        function toggleBaja(chk) {
+            const codigo = chk.getAttribute('data-codigo');
+            const idProp = chk.getAttribute('data-idprop');
+            const activar = chk.checked;
+            const lbl = document.getElementById('lbl_baja_texto');
+            fetch(`procesar_entidades.php?tipo=baja&accion=${activar ? 'activar' : 'desactivar'}&codigo=${encodeURIComponent(codigo)}&id_propietario=${encodeURIComponent(idProp)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success) {
+                        lbl.textContent = activar ? 'Sí' : 'No';
+                    } else {
+                        alert('No se pudo actualizar la baja.');
+                        chk.checked = !activar;
+                    }
+                })
+                .catch(() => {
+                    alert('Error de red');
+                    chk.checked = !activar;
+                });
+        }
     </script>
 </head>
 
@@ -527,7 +551,17 @@ $movimientos = $conexion->query($query_movimientos);
 
                         <p><strong>Fecha de Recepción:</strong> <input type="date" name="fecha_recepcion" id="fecha_recepcion" value="<?= date('Y-m-d', strtotime($llave['fecha_recepcion'])) ?>" /></p>
                         <p><strong>Observaciones:</strong> <input type="text" name="observaciones" id="observaciones" value="<?= htmlspecialchars($llave['observaciones']) ?>" /></p>
-                        <p><strong>Estado:</strong> <?= htmlspecialchars($llave['estado']) ?></p>
+                        <p><strong>Baja:</strong> 
+                            <label style="margin-left:6px; display:inline-flex; align-items:center; gap:6px;">
+                                <input type="checkbox"
+                                       id="chk_baja"
+                                       data-codigo="<?= htmlspecialchars($llave['codigo_principal']) ?>"
+                                       data-idprop="<?= $llave['id_propietario'] ?>"
+                                       <?= isset($llave['baja']) && intval($llave['baja']) === 1 ? 'checked' : '' ?>
+                                       onchange="toggleBaja(this)">
+                                <span id="lbl_baja_texto"><?= (isset($llave['baja']) && intval($llave['baja']) === 1) ? 'Sí' : 'No' ?></span>
+                            </label>
+                        </p>
 
                         <div id="botonesEditar">
                             <button class="btn-actualizar" type="submit" name="actualizar">Actualizar</button>

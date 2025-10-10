@@ -1,3 +1,21 @@
+/* Indicador visual de baja */
+.badge-baja{
+  display:inline-block;
+  margin-left:6px;
+  padding:2px 6px;
+  font-size:12px;
+  border-radius:10px;
+  background:#c0392b;
+  color:#fff;
+}
+
+.fila-baja{
+  opacity:0.85;
+}
+
+.fila-baja td{
+  background:linear-gradient(90deg, rgba(192,57,43,0.06), transparent);
+}
 html,
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;

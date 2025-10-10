@@ -12,6 +12,8 @@ $tipo = $_GET['tipo'] ?? '';
 $accion = $_GET['accion'] ?? '';
 $id = $_GET['id'] ?? 0;
 $valor = $_GET['valor'] ?? '';
+$codigo = $_GET['codigo'] ?? '';
+$id_propietario = $_GET['id_propietario'] ?? '';
 
 switch ($accion) {
     case 'agregar':
@@ -50,6 +52,22 @@ switch ($accion) {
         break;
         
     default:
+        if ($tipo === 'baja') {
+            // Asegurar columna baja y actualizar
+            $conexion->query("ALTER TABLE llaves ADD COLUMN IF NOT EXISTS baja TINYINT(1) NOT NULL DEFAULT 0");
+            if ($codigo && $id_propietario !== '') {
+                $marcar = ($accion === 'activar') ? 1 : 0;
+                $stmt = $conexion->prepare("UPDATE llaves SET baja = ? WHERE codigo_principal = ? AND id_propietario = ?");
+                if ($stmt) {
+                    $stmt->bind_param("isi", $marcar, $codigo, $id_propietario);
+                    $ok = $stmt->execute();
+                    echo json_encode(['success' => $ok]);
+                    exit;
+                }
+            }
+            echo json_encode(['success' => false]);
+            exit;
+        }
         header("HTTP/1.1 400 Bad Request");
         echo json_encode(['success' => false, 'error' => 'Acción no válida']);
 }

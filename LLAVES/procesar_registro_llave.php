@@ -25,6 +25,8 @@ $codigo_alarma = trim($_POST['codigo_alarma'] ?? '');
 if (!$tiene_alarma) {
     $codigo_alarma = '';
 }
+// Campo baja
+$baja = isset($_POST['baja']) ? 1 : 0;
 
 // Insertar nuevo propietario si se escribió uno
 if (empty($id_propietario) && !empty($nuevo_propietario)) {
@@ -56,13 +58,19 @@ if ($codigo_principal && $id_propietario && $id_ubicacion && $fecha_recepcion) {
     }
 
     if ($hasAlarmaColumns) {
-        // Insertar incluyendo columnas de alarma
+        // Asegurar columna baja si no existe
+        $resBaja = $conexion->query("SHOW COLUMNS FROM llaves LIKE 'baja'");
+        if (!$resBaja || $resBaja->num_rows === 0) {
+            $conexion->query("ALTER TABLE llaves ADD COLUMN baja TINYINT(1) NOT NULL DEFAULT 0");
+        }
+
+        // Insertar incluyendo columnas de alarma y baja
         $stmt = $conexion->prepare("INSERT INTO llaves (
-                                        codigo_principal, id_propietario, codigo_secundario, direccion, id_poblacion, id_ubicacion, fecha_recepcion, observaciones, tiene_alarma, codigo_alarma
-                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                        codigo_principal, id_propietario, codigo_secundario, direccion, id_poblacion, id_ubicacion, fecha_recepcion, observaciones, tiene_alarma, codigo_alarma, baja
+                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         if ($stmt) {
             $stmt->bind_param(
-                "sisssissis",
+                "sisssissisi",
                 $codigo_principal,
                 $id_propietario,
                 $codigo_secundario,
@@ -72,7 +80,8 @@ if ($codigo_principal && $id_propietario && $id_ubicacion && $fecha_recepcion) {
                 $fecha_recepcion,
                 $observaciones,
                 $tiene_alarma,
-                $codigo_alarma
+                $codigo_alarma,
+                $baja
             );
         }
     } else {

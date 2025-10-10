@@ -123,6 +123,10 @@ $ubicaciones = $conexion->query("SELECT * FROM ubicacion ORDER BY nombre_ubicaci
                             Tiene alarma
                         </label>
                         <input type="text" name="codigo_alarma" id="codigo_alarma" placeholder="Código de alarma" disabled>
+                        <label style="display:flex; align-items:center; gap:6px; margin-left:12px;">
+                            <input type="checkbox" name="baja" id="baja">
+                            Baja
+                        </label>
                     </div>
                     <textarea name="observaciones" placeholder="Observaciones" rows="3"></textarea>
                     <button type="submit" class="btn-guardar">Guardar Llave</button>

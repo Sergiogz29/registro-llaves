@@ -32,7 +32,7 @@ $codigo_principal = isset($_GET['codigo_principal']) ? trim($conexion->real_esca
 $propietario = isset($_GET['propietario']) ? trim($conexion->real_escape_string($_GET['propietario'])) : '';
 $poblacion = isset($_GET['poblacion']) ? trim($conexion->real_escape_string($_GET['poblacion'])) : '';
 $ubicacion = isset($_GET['ubicacion']) ? trim($conexion->real_escape_string($_GET['ubicacion'])) : '';
-$ocultar_vendidos = isset($_GET['ocultar_vendidos']) && $_GET['ocultar_vendidos'] == '1';
+$ocultar_bajas = isset($_GET['ocultar_bajas']) && $_GET['ocultar_bajas'] == '1';
 
 // Condiciones WHERE
 $condiciones = [];
@@ -48,8 +48,10 @@ if ($poblacion) {
 if ($ubicacion) {
     $condiciones[] = "ubicacion.nombre_ubicacion LIKE '%$ubicacion%'";
 }
-if ($ocultar_vendidos) {
-    $condiciones[] = "LOWER(TRIM(ubicacion.nombre_ubicacion)) NOT REGEXP 'vendid[oa]s?'";
+if ($ocultar_bajas) {
+    // Asegurar columna baja exista
+    $conexion->query("ALTER TABLE llaves ADD COLUMN IF NOT EXISTS baja TINYINT(1) NOT NULL DEFAULT 0");
+    $condiciones[] = "(llaves.baja = 0 OR llaves.baja IS NULL)";
 }
 $where = count($condiciones) ? "WHERE " . implode(" AND ", $condiciones) : "";
 
@@ -174,7 +176,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
             'propietario' => $propietario,
             'poblacion' => $poblacion,
             'ubicacion' => $ubicacion,
-            'ocultar_vendidos' => $ocultar_vendidos ? '1' : '0'
+            'ocultar_bajas' => $ocultar_bajas ? '1' : '0'
         ];
         $query_string = http_build_query($params);
         ?>
@@ -257,8 +259,8 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                 <input id="ubicacion" type="text" placeholder="Buscar por ubicación"
                     value="<?= htmlspecialchars($ubicacion) ?>" onkeyup="filtrar()">
                 <label class="checkbox-verificado">
-                    <input type="checkbox" name="ocultar_vendidos" value="1" class="checkbox-verificado-input" <?= $ocultar_vendidos ? 'checked' : '' ?>>
-                    <span class="checkbox-text">Vendido</span>
+                    <input type="checkbox" name="ocultar_bajas" value="1" class="checkbox-verificado-input" <?= $ocultar_bajas ? 'checked' : '' ?>>
+                    <span class="checkbox-text">Ocultar bajas</span>
                 </label>
             </div>
 
@@ -281,7 +283,8 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                         <?php foreach ($registros as $row): ?>
                             <tr data-codigo-principal="<?= htmlspecialchars($row['codigo_principal']) ?>"
                                 data-id-propietario="<?= $row['id_propietario'] ?>"
-                                data-id-ubicacion="<?= $row['id_ubicacion'] ?>">
+                                data-id-ubicacion="<?= $row['id_ubicacion'] ?>"
+                                class="<?= isset($row['baja']) && intval($row['baja']) === 1 ? 'fila-baja' : '' ?>">
                                 <td><?= $row['codigo_principal'] ?></td>
                                 <td><?= $row['nombre_propietario'] ?></td>
                                 <td><?= $row['nombre_poblacion'] ?></td>
@@ -311,7 +314,12 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                                         echo $textoAlarma;
                                     ?>
                                 </td>
-                                <td class="observaciones-cell"><?= htmlspecialchars($row['observaciones'] ?? '') ?></td>
+                                <td class="observaciones-cell">
+                                    <?= htmlspecialchars($row['observaciones'] ?? '') ?>
+                                    <?php if (isset($row['baja']) && intval($row['baja']) === 1): ?>
+                                        <span class="badge-baja">Baja</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="acciones-cell">
                                     <div class="acciones-contenedor">
                                         <input type="checkbox" class="estado-toggle"
@@ -362,7 +370,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                         'propietario' => $propietario,
                         'poblacion' => $poblacion,
                         'ubicacion' => $ubicacion,
-                        'ocultar_vendidos' => $ocultar_vendidos ? '1' : '0'
+                        'ocultar_bajas' => $ocultar_bajas ? '1' : '0'
                     ];
                     $query_string = http_build_query($params);
                     ?>
@@ -401,7 +409,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                 propietario: document.getElementById('propietario').value,
                 poblacion: document.getElementById('poblacion').value,
                 ubicacion: document.getElementById('ubicacion').value,
-                ocultar_vendidos: document.querySelector('.checkbox-verificado-input')?.checked ? 1 : 0,
+                ocultar_bajas: document.querySelector('.checkbox-verificado-input')?.checked ? 1 : 0,
                 pagina: 1,
                 _: new Date().getTime()
             });
@@ -471,7 +479,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                 propietario: propietario,
                 poblacion: poblacion,
                 ubicacion: ubicacion,
-                ocultar_vendidos: ocultarVendidos,
+                ocultar_bajas: ocultarVendidos,
                 pagina: pagina,
                 _: new Date().getTime()
             });
@@ -514,7 +522,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                     propietario: inputPropietario.value || '',
                     poblacion: inputPoblacion.value || '',
                     ubicacion: inputUbicacion.value || '',
-                    ocultar_vendidos: this.checked ? 1 : 0,
+                    ocultar_bajas: this.checked ? 1 : 0,
                     pagina: paginaActual,
                     _: new Date().getTime()
                 });
@@ -556,7 +564,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                         propietario: inputPropietario.value || '',
                         poblacion: inputPoblacion.value || '',
                         ubicacion: inputUbicacion.value || '',
-                        ocultar_vendidos: checkbox.checked ? 1 : 0,
+                        ocultar_bajas: checkbox.checked ? 1 : 0,
                         pagina: 1,
                         _: new Date().getTime()
                     });
@@ -603,7 +611,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                         propietario: document.getElementById('propietario').value || '',
                         poblacion: document.getElementById('poblacion').value || '',
                         ubicacion: document.getElementById('ubicacion').value || '',
-                        ocultar_vendidos: document.querySelector('.checkbox-verificado-input')?.checked ? 1 : 0,
+                        ocultar_bajas: document.querySelector('.checkbox-verificado-input')?.checked ? 1 : 0,
                         pagina: url.searchParams.get('pagina') || 1,
                         _: new Date().getTime()
                     });
