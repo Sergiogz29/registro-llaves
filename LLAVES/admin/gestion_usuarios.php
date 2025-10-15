@@ -9,6 +9,9 @@ if (!isset($_SESSION["s_usuario"]) || $_SESSION["rol"] !== 'admin') {
 $conexion = new mysqli("localhost", "root", "", "registro_llaves");
 $conexion->set_charset("utf8");
 
+// Asegurar columna 'correo' para compatibilidad si aún no existe
+$conexion->query("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS correo VARCHAR(255) NULL AFTER rol");
+
 // Comprobar si la conexión es correcta
 if ($conexion->connect_error) {
     die("Conexión fallida: " . $conexion->connect_error);
@@ -30,6 +33,7 @@ if (isset($_GET['eliminar'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nombre = trim($_POST['nombre']);
     $rol = $_POST['rol'];
+    $correo = isset($_POST['correo']) ? trim($_POST['correo']) : '';
     $error = '';
 
     // Validar campos
@@ -62,17 +66,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $query->bind_param("sssi", $nombre, $password, $rol, $id);
             } else {
                 // Actualizar sin cambiar contraseña
-                $query = $conexion->prepare("UPDATE usuarios SET nombre = ?, rol = ? WHERE id = ?");
-                $query->bind_param("ssi", $nombre, $rol, $id);
+                $query = $conexion->prepare("UPDATE usuarios SET nombre = ?, rol = ?, correo = ? WHERE id = ?");
+                $query->bind_param("sssi", $nombre, $rol, $correo, $id);
             }
         } else {
             // Creación de nuevo usuario
             $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-            $query = $conexion->prepare("INSERT INTO usuarios (nombre, contrasena, rol) VALUES (?, ?, ?)");
-            $query->bind_param("sss", $nombre, $password, $rol);
+            $query = $conexion->prepare("INSERT INTO usuarios (nombre, contrasena, rol, correo) VALUES (?, ?, ?, ?)");
+            $query->bind_param("ssss", $nombre, $password, $rol, $correo);
         }
 
         if ($query->execute()) {
+            // Si también se cambia la contraseña, aplicar actualización de correo
+            if (isset($_POST['id']) && $cambiar_password) {
+                $id = intval($_POST['id']);
+                $q2 = $conexion->prepare("UPDATE usuarios SET correo = ? WHERE id = ?");
+                $q2->bind_param("si", $correo, $id);
+                $q2->execute();
+                $q2->close();
+            }
             header("Location: gestion_usuarios.php");
             exit();
         } else {
@@ -103,6 +115,7 @@ $usuarios = $conexion->query("SELECT * FROM usuarios ORDER BY nombre");
 <head>
     <meta charset="UTF-8">
     <title>Gestión de Usuarios</title>
+    <link rel="icon" type="image/png" href="../img/logo1.png?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="../css/estilos.css">
 
@@ -188,6 +201,12 @@ $usuarios = $conexion->query("SELECT * FROM usuarios ORDER BY nombre");
                                 <option value="usuario" <?= $editar && $editar['rol'] === 'usuario' ? 'selected' : '' ?>>Usuario</option>
                                 <option value="admin" <?= $editar && $editar['rol'] === 'admin' ? 'selected' : '' ?>>Administrador</option>
                             </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="correo">Correo de avisos (reclamos):</label>
+                            <input type="text" id="correo" name="correo" placeholder="admin@tu-dominio.com"
+                                   value="<?= $editar ? htmlspecialchars($editar['correo'] ?? '') : '' ?>">
                         </div>
 
                         <button type="submit" class="btn btn-primary">

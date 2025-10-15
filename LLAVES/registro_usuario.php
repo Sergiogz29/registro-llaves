@@ -11,6 +11,7 @@ if (isset($_SESSION["s_usuario"])) {
 <head>
     <meta charset="UTF-8">
     <title>Registro de Usuario</title>
+    <link rel="icon" type="image/png" href="img/logo1.png?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="css/estilos_login.css">
 </head>
 
@@ -31,6 +32,11 @@ if (isset($_SESSION["s_usuario"])) {
 
                 <div class="wrap-input">
                     <input type="password" name="contrasena" required class="input" placeholder="Contraseña">
+                    <span class="focus-efecto"></span>
+                </div>
+
+                <div class="wrap-input">
+                    <input type="text" name="correo" class="input" placeholder="Correo (para avisos)">
                     <span class="focus-efecto"></span>
                 </div>
 

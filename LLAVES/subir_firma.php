@@ -103,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Subir archivo firmado</title>
+    <link rel="icon" type="image/png" href="img/logo1.png?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="css/estilos.css">
     <script>
         function toggleMenu() {

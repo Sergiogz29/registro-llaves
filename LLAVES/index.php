@@ -147,6 +147,13 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                                 <i class="fas fa-pencil-alt"></i>
                             </a>
                         </div>
+                        <?php if (isset($_SESSION['es_admin']) && $_SESSION['es_admin']): ?>
+                        <a class="btn-eliminar-llave" href="#" title="Eliminar"
+                           data-codigo="<?= htmlspecialchars($row['codigo_principal']) ?>"
+                           data-propietario="<?= $row['id_propietario'] ?>">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                        <?php endif; ?>
                     </div>
                 </td>
             </tr>
@@ -217,6 +224,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
     <title>Registro de Llaves</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="css/estilos.css">
+    <link rel="icon" type="image/png" href="img/logo1.png?v=<?php echo time(); ?>">
     <script>
         const ubicaciones = <?= json_encode($ubicaciones) ?>;
     </script>
@@ -240,6 +248,7 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                         <li><a href="ubicaciones.php">Ubicaciones</a></li>
                         <?php if (isset($_SESSION['es_admin']) && $_SESSION['es_admin']): ?>
                             <li><a href="admin/gestion_usuarios.php">Usuarios</a></li>
+                            <li><a href="#" id="btn-enviar-reclamos">Enviar reclamos ahora</a></li>
                         <?php endif; ?>
                         <li class="menu-divider"></li>
                         <li><a href="logout.php" class="logout-link">Cerrar sesión</a></li>
@@ -658,6 +667,47 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                     }, 0);
                 }
             });
+
+            // Eliminar llave (solo admin)
+            document.addEventListener('click', async function(e) {
+                const btn = e.target.closest('.btn-eliminar-llave');
+                if (!btn) return;
+                e.preventDefault();
+                const codigo = btn.getAttribute('data-codigo');
+                const idProp = btn.getAttribute('data-propietario');
+                if (!codigo || !idProp) return;
+                const confirmar = confirm(`¿Eliminar la llave ${codigo}? Esta acción no se puede deshacer.`);
+                if (!confirmar) return;
+                try {
+                    const resp = await fetch('eliminar_llave.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ codigo_principal: codigo, id_propietario: idProp })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok || !data.success) throw new Error(data.message || 'Error eliminando');
+                    alert('Llave eliminada correctamente');
+                    filtrar();
+                } catch (err) {
+                    alert('No se pudo eliminar: ' + err.message);
+                }
+            });
+
+            // Enviar reclamos manualmente (admin)
+            const btnReclamos = document.getElementById('btn-enviar-reclamos');
+            if (btnReclamos) {
+                btnReclamos.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    if (!confirm('¿Enviar ahora el correo con TODAS las llaves en salida (aunque sean de hoy)?')) return;
+                    try {
+                        const resp = await fetch('reclamos_cron.php?run=1&force=1', { headers: { 'Cache-Control': 'no-cache' } });
+                        const text = await resp.text();
+                        alert('Proceso finalizado.\n' + text);
+                    } catch (err) {
+                        alert('Error al enviar reclamos: ' + err.message);
+                    }
+                });
+            }
 
 
         });

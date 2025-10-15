@@ -8,28 +8,60 @@ if (!isset($_SESSION["s_usuario"])) {
 $conexion = new mysqli("localhost", "root", "", "registro_llaves");
 $conexion->set_charset("utf8");
 
+// Asegurar columna para reclamo automático (si no existe)
+$conexion->query("ALTER TABLE ubicacion ADD COLUMN IF NOT EXISTS requiere_reclamo TINYINT(1) NOT NULL DEFAULT 0");
+
 // Procesar eliminación
 if (isset($_GET['eliminar'])) {
-    $id = $_GET['eliminar'];
-    $query = "DELETE FROM ubicacion WHERE id_ubicacion = $id";
-    $conexion->query($query);
+    $id = intval($_GET['eliminar']);
+    // Verificar dependencias con llaves
+    $stmtChk = $conexion->prepare("SELECT COUNT(*) AS total FROM llaves WHERE id_ubicacion = ?");
+    if ($stmtChk) {
+        $stmtChk->bind_param("i", $id);
+        $stmtChk->execute();
+        $res = $stmtChk->get_result();
+        $total = $res ? intval($res->fetch_assoc()['total'] ?? 0) : 0;
+        $stmtChk->close();
+        if ($total > 0) {
+            $_SESSION['mensaje'] = "No se puede eliminar: hay $total llaves asociadas a esta ubicación.";
+            $_SESSION['tipo_mensaje'] = "error";
+            header("Location: ubicaciones.php");
+            exit();
+        }
+    }
+
+    $stmtDel = $conexion->prepare("DELETE FROM ubicacion WHERE id_ubicacion = ?");
+    if ($stmtDel) {
+        $stmtDel->bind_param("i", $id);
+        $stmtDel->execute();
+        $stmtDel->close();
+        $_SESSION['mensaje'] = "Ubicación eliminada correctamente.";
+        $_SESSION['tipo_mensaje'] = "success";
+    }
     header("Location: ubicaciones.php");
     exit();
 }
 
 // Procesar formulario
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nombre = $_POST['nombre'];
+    $nombre = $conexion->real_escape_string($_POST['nombre']);
     $tipo = strtoupper($_POST['tipo']);
+    $requiere = isset($_POST['requiere_reclamo']) ? 1 : 0;
 
     if (isset($_POST['id'])) {
-        $id = $_POST['id'];
-        $query = "UPDATE ubicacion SET nombre_ubicacion = '$nombre', tipo = '$tipo' WHERE id_ubicacion = $id";
+        $id = intval($_POST['id']);
+        $query = "UPDATE ubicacion SET nombre_ubicacion = '$nombre', tipo = '$tipo', requiere_reclamo = $requiere WHERE id_ubicacion = $id";
     } else {
-        $query = "INSERT INTO ubicacion (nombre_ubicacion, tipo) VALUES ('$nombre', '$tipo')";
+        $query = "INSERT INTO ubicacion (nombre_ubicacion, tipo, requiere_reclamo) VALUES ('$nombre', '$tipo', $requiere)";
     }
 
-    $conexion->query($query);
+    if ($conexion->query($query)) {
+        $_SESSION['mensaje'] = isset($_POST['id']) ? 'Ubicación actualizada.' : 'Ubicación creada.';
+        $_SESSION['tipo_mensaje'] = 'success';
+    } else {
+        $_SESSION['mensaje'] = 'Error guardando ubicación: ' . $conexion->error;
+        $_SESSION['tipo_mensaje'] = 'error';
+    }
     header("Location: ubicaciones.php");
     exit();
 }
@@ -54,6 +86,7 @@ $ubicaciones = $conexion->query($query);
 <head>
     <meta charset="UTF-8">
     <title>Gestión de Ubicaciones</title>
+    <link rel="icon" type="image/png" href="img/logo1.png?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
@@ -87,6 +120,12 @@ $ubicaciones = $conexion->query($query);
         <main>
             <!-- <h1>Gestión de Ubicaciones</h1> -->
             <div class="container">
+                <?php if (isset($_SESSION['mensaje'])): ?>
+                    <div class="mensaje mensaje-<?= $_SESSION['tipo_mensaje'] ?>">
+                        <?= $_SESSION['mensaje'] ?>
+                    </div>
+                    <?php unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']); ?>
+                <?php endif; ?>
                 <div class="form-container">
                     <h2><?= $editar ? 'Editar Ubicación' : 'Agregar Nueva Ubicación' ?></h2>
                     <form method="POST">
@@ -110,6 +149,15 @@ $ubicaciones = $conexion->query($query);
                             </select>
                         </div>
 
+                        <div class="form-group">
+                            <label for="requiere_reclamo">Reclamo de llave:</label>
+                            <label class="checkbox-verificado" style="margin-left:0">
+                                <input type="checkbox" name="requiere_reclamo" id="requiere_reclamo" class="checkbox-verificado-input"
+                                    <?= isset($editar) && isset($editar['requiere_reclamo']) && intval($editar['requiere_reclamo']) === 1 ? 'checked' : '' ?>>
+                                <span class="checkbox-text">Enviar reclamo si no se devuelve en 7 días</span>
+                            </label>
+                        </div>
+
                         <button type="submit" class="btn btn-primary">
                             <?= $editar ? 'Actualizar' : 'Guardar' ?>
                         </button>
@@ -128,6 +176,7 @@ $ubicaciones = $conexion->query($query);
                                 <th>ID</th>
                                 <th>Nombre</th>
                                 <th>Tipo</th>
+                                <th class="col-reclamo" style="text-align:center; width:90px;">Reclamo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -137,6 +186,9 @@ $ubicaciones = $conexion->query($query);
                                     <td><?= $row['id_ubicacion'] ?></td>
                                     <td><?= htmlspecialchars($row['nombre_ubicacion']) ?></td>
                                     <td><?= htmlspecialchars($row['tipo']) ?></td>
+                                    <td class="col-reclamo" style="text-align:center; width:90px;">
+                                        <?= (isset($row['requiere_reclamo']) && intval($row['requiere_reclamo']) === 1) ? 'Sí' : 'No' ?>
+                                    </td>
                                     <td class="actions">
                                         <a href="ubicaciones.php?editar=<?= $row['id_ubicacion'] ?>" class="btn-edit" title="Editar">
                                             <i class="fas fa-edit"></i>

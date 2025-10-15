@@ -5,6 +5,7 @@ include 'conexion.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $usuario = trim($_POST['usuario']);
     $contrasena = $_POST['contrasena'];
+    $correo = isset($_POST['correo']) ? trim($_POST['correo']) : '';
 
     // Validar campos vacíos
     if (empty($usuario) || empty($contrasena)) {
@@ -27,8 +28,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $hash = password_hash($contrasena, PASSWORD_DEFAULT);
 
     // Insertar nuevo usuario
-    $stmt = $conexion->prepare("INSERT INTO usuarios (nombre, contrasena) VALUES (?, ?)");
-    $stmt->bind_param("ss", $usuario, $hash);
+    $stmt = $conexion->prepare("INSERT INTO usuarios (nombre, contrasena, correo, rol) VALUES (?, ?, ?, 'usuario')");
+    $stmt->bind_param("sss", $usuario, $hash, $correo);
 
     if ($stmt->execute()) {
         header("Location: login.php?exito=Registro exitoso. Inicia sesión");

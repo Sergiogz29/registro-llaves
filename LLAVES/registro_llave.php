@@ -20,6 +20,7 @@ $ubicaciones = $conexion->query("SELECT * FROM ubicacion ORDER BY nombre_ubicaci
 <head>
     <meta charset="UTF-8">
     <title>Registrar Nueva Llave</title>
+    <link rel="icon" type="image/png" href="img/logo1.png?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="css/estilos.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
