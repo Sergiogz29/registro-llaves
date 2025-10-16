@@ -21,6 +21,7 @@ $conexion->query("ALTER TABLE llaves ADD COLUMN IF NOT EXISTS estado VARCHAR(20)
 
 // Seleccionar llaves en 'salida' con más de 7 días, y cuya ubicacion requiere reclamo
 $dateCondition = $force ? "1=1" : "m.fecha < DATE_SUB(NOW(), INTERVAL 7 DAY)";
+$reclamoCondition = $force ? "1=1" : "u.requiere_reclamo = 1";
 $sql = "
 SELECT l.codigo_principal, l.direccion, p.nombre_propietario, u.nombre_ubicacion, m.fecha
 FROM llaves l
@@ -31,7 +32,7 @@ JOIN (
     FROM movimientos_llaves
     GROUP BY codigo_principal, id_propietario
 ) m ON m.codigo_principal = l.codigo_principal AND m.id_propietario = l.id_propietario
-WHERE u.requiere_reclamo = 1
+WHERE $reclamoCondition
   AND l.estado = 'salida'
   AND $dateCondition
 ORDER BY m.fecha ASC";

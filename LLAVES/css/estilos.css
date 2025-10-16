@@ -265,6 +265,11 @@ main {
   gap: 10px;
 }
 
+.estado-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
 .acciones-contenedor input.estado-toggle {
   margin: 0;
 }

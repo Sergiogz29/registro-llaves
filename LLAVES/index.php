@@ -127,11 +127,11 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                 <td class="observaciones-cell"><?= htmlspecialchars($row['observaciones'] ?? '') ?></td>
                 <td class="acciones-cell">
                     <div class="acciones-contenedor">
-                        <input type="checkbox" class="estado-toggle"
+                        <span class="estado-emoji" title="<?= strtolower($row['tipo']) === 'interno' ? 'Interno' : 'Externo' ?>"
                             data-codigo="<?= htmlspecialchars($row['codigo_principal']) ?>"
-                            data-propietario="<?= $row['id_propietario'] ?>"
-                            <?= strtolower($row['tipo']) === 'interno' ? 'checked' : '' ?>
-                            disabled>
+                            data-propietario="<?= $row['id_propietario'] ?>">
+                            <?= strtolower($row['tipo']) === 'interno' ? '🏠' : '🚪' ?>
+                        </span>
                         <a class="btn-etiqueta" target="_blank"
                             href="generar_etiqueta.php?codigo_principal=<?= urlencode($row['codigo_principal']) ?>&id_propietario=<?= urlencode($row['id_propietario']) ?>"
                             title="Imprimir etiqueta">
@@ -331,11 +331,11 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
                                 </td>
                                 <td class="acciones-cell">
                                     <div class="acciones-contenedor">
-                                        <input type="checkbox" class="estado-toggle"
+                                        <span class="estado-emoji" title="<?= strtolower($row['tipo']) === 'interno' ? 'Interno' : 'Externo' ?>"
                                             data-codigo="<?= htmlspecialchars($row['codigo_principal']) ?>"
-                                            data-propietario="<?= $row['id_propietario'] ?>"
-                                            <?= strtolower($row['tipo']) === 'interno' ? 'checked' : '' ?>
-                                            disabled>
+                                            data-propietario="<?= $row['id_propietario'] ?>">
+                                            <?= strtolower($row['tipo']) === 'interno' ? '🏠' : '🚪' ?>
+                                        </span>
                                         <a class="btn-etiqueta" target="_blank"
                                             href="generar_etiqueta.php?codigo_principal=<?= urlencode($row['codigo_principal']) ?>&id_propietario=<?= urlencode($row['id_propietario']) ?>"
                                             title="Imprimir etiqueta">
@@ -832,9 +832,13 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'
 
                 row.querySelector('.fecha-recepcion-cell').textContent = fechaFormateada;
 
-                // Actualizar el checkbox según el tipo de ubicación
-                const checkbox = row.querySelector('.estado-toggle');
-                checkbox.checked = tipoUbicacion.toLowerCase() === 'interno';
+                // Actualizar el emoji según el tipo de ubicación
+                const estadoEmoji = row.querySelector('.estado-emoji');
+                if (estadoEmoji) {
+                    const esInterno = tipoUbicacion.toLowerCase() === 'interno';
+                    estadoEmoji.textContent = esInterno ? '🏠' : '🚪';
+                    estadoEmoji.title = esInterno ? 'Interno' : 'Externo';
+                }
 
                 row.dataset.idUbicacion = idUbicacion;
 
